@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Snake</title>
+<title>Caterpillars</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="preconnecdt" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet" />
 <style>
   :root {
@@ -13,9 +13,9 @@
     --panel: #1a1d29;
     --grid-a: #12151f;
     --grid-b: #151926;
-    --snake: #4ade80;
-    --snake-head: #86efac;
-    --food: #f472b6;
+    --snake: #facc15;
+    --snake-head: #fde047;
+    --food: #4ade80;
     --accent: #60a5fa;
     --text: #e5e7eb;
     --muted: #8b91a1;
@@ -51,7 +51,7 @@
     font-weight: 700;
     letter-spacing: -0.02em;
   }
-  h1 span { color: var(--snake); }
+  h1 span { color: #4ade80; }
 
   .scores { display: flex; gap: 20px; }
   .scores .label {
@@ -66,7 +66,7 @@
     font-weight: 600;
     line-height: 1.1;
   }
-  .scores .best .value { color: var(--accent); }
+  .scores .best .value { color: #4ade80; }
 
   .board-wrap {
     position: relative;
@@ -114,7 +114,7 @@
     border-radius: 999px;
     cursor: pointer;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
-    box-shadow: 0 8px 20px -6px rgba(74,222,128,0.6);
+    box-shadow: 0 8px 20px -6px rgba(250,204,21,0.6);
   }
   button:hover { transform: translateY(-2px); }
   button:active { transform: translateY(0); }
@@ -143,7 +143,7 @@
 <body>
   <div class="game">
     <header>
-      <h1>Snake<span>.</span></h1>
+      <h1>Caterpillar<span>.</span></h1>
       <div class="scores">
         <div>
           <div class="label">Score</div>
@@ -160,7 +160,7 @@
       <canvas id="board" width="400" height="400"></canvas>
       <div class="overlay" id="overlay">
         <h2 id="ov-title">Ready?</h2>
-        <p id="ov-text">Use the arrow keys or WASD to steer. Eat the pink dots and don't bite yourself.</p>
+        <p id="ov-text">Use the arrow keys or WASD to steer your caterpillar. Eat the green dots and don't bite yourself.</p>
         <button id="start-btn">Play</button>
       </div>
     </div>
@@ -233,10 +233,11 @@
   function loop(ts) {
     rafId = requestAnimationFrame(loop);
     if (!running || paused) return;
-    if (ts - lastMove < 1000 / SPEED) return;
-    lastMove = ts;
-    step();
-    draw();
+    if (ts - lastMove >= 1000 / SPEED) {
+      lastMove = ts;
+      step();
+    }
+    draw(ts);          // redraw every frame so the rattle can shake
   }
 
   function step() {
@@ -269,7 +270,11 @@
     ctx.fill();
   }
 
-  function draw() {
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let frameTime = 0;   // latest timestamp, used to animate the rattle
+
+  function draw(ts = 0) {
+    frameTime = ts;
     // checkerboard background
     for (let y = 0; y < GRID; y++) {
       for (let x = 0; x < GRID; x++) {
@@ -280,18 +285,62 @@
 
     // food
     const fx = food.x * CELL, fy = food.y * CELL;
-    ctx.fillStyle = "#f472b6";
-    ctx.shadowColor = "#f472b6";
+    ctx.fillStyle = "#4ade80";
+    ctx.shadowColor = "#4ade80";
     ctx.shadowBlur = 12;
     roundRect(fx + CELL * 0.2, fy + CELL * 0.2, CELL * 0.6, CELL * 0.6, 5);
     ctx.shadowBlur = 0;
 
-    // snake
+    // caterpillar
+    const last = snake.length - 1;
     snake.forEach((s, i) => {
-      ctx.fillStyle = i === 0 ? "#86efac" : "#4ade80";
-      const pad = i === 0 ? 1.5 : 2.5;
-      roundRect(s.x * CELL + pad, s.y * CELL + pad, CELL - pad * 2, CELL - pad * 2, 5);
+      if (i === last && snake.length > 1) {
+        drawTail(s, snake[i - 1]);
+      } else {
+        // each segment its own hue, cycling through the spectrum
+        const hue = (i * 32) % 360;
+        ctx.fillStyle = `hsl(${hue}, 85%, ${i === 0 ? 65 : 58}%)`;
+        const pad = i === 0 ? 1.5 : 2.5;
+        roundRect(s.x * CELL + pad, s.y * CELL + pad, CELL - pad * 2, CELL - pad * 2, 6);
+      }
     });
+  }
+
+  // Rattlesnake-style tail: a row of tapering rattle segments
+  function drawTail(tail, prev) {
+    const cx = tail.x * CELL + CELL / 2;
+    const cy = tail.y * CELL + CELL / 2;
+    // outward direction = away from the segment before the tail
+    const ox = tail.x - prev.x;
+    const oy = tail.y - prev.y;
+    const px = -oy, py = ox;           // perpendicular
+
+    // start at the body edge, march outward stacking shrinking rattles
+    const SEGS = 4;
+    const span = CELL - 2;             // total length across the cell
+    const startD = -span / 2;          // begin at inner edge
+    let d = startD;
+    for (let i = 0; i < SEGS; i++) {
+      const t = i / (SEGS - 1);        // 0 → inner, 1 → tip
+      const segLen = (span / SEGS) * (1 - t * 0.35);
+      const halfW = (CELL * 0.42) * (1 - t * 0.6);   // taper toward the tip
+      const midD = d + segLen / 2;
+      // shake: perpendicular jitter that grows toward the tip
+      const wobble = reduceMotion ? 0
+        : Math.sin(frameTime * 0.03 + i * 1.2) * CELL * 0.16 * t;
+      const mx = cx + ox * midD + px * wobble;
+      const my = cy + oy * midD + py * wobble;
+      // diamond-shaped rattle bead
+      ctx.fillStyle = i % 2 === 0 ? "#facc15" : "#ca8a04";
+      ctx.beginPath();
+      ctx.moveTo(mx + ox * (segLen / 2), my + oy * (segLen / 2));
+      ctx.lineTo(mx + px * halfW, my + py * halfW);
+      ctx.lineTo(mx - ox * (segLen / 2), my - oy * (segLen / 2));
+      ctx.lineTo(mx - px * halfW, my - py * halfW);
+      ctx.closePath();
+      ctx.fill();
+      d += segLen * 0.9;               // slight overlap between beads
+    }
   }
 
   // ---- Controls ----
