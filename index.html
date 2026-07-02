@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Caterpillar</title>
+<title>Snake</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet" />
@@ -13,9 +13,9 @@
     --panel: #1a1d29;
     --grid-a: #12151f;
     --grid-b: #151926;
-    --snake: #facc15;
-    --snake-head: #fde047;
-    --food: #4ade80;
+    --snake: #4ade80;
+    --snake-head: #86efac;
+    --food: #f472b6;
     --accent: #60a5fa;
     --text: #e5e7eb;
     --muted: #8b91a1;
@@ -114,7 +114,7 @@
     border-radius: 999px;
     cursor: pointer;
     transition: transform 0.15s ease, box-shadow 0.15s ease;
-    box-shadow: 0 8px 20px -6px rgba(250,204,21,0.6);
+    box-shadow: 0 8px 20px -6px rgba(74,222,128,0.6);
   }
   button:hover { transform: translateY(-2px); }
   button:active { transform: translateY(0); }
@@ -143,7 +143,7 @@
 <body>
   <div class="game">
     <header>
-      <h1>Caterpillar<span>.</span></h1>
+      <h1>Snake<span>.</span></h1>
       <div class="scores">
         <div>
           <div class="label">Score</div>
@@ -160,7 +160,7 @@
       <canvas id="board" width="400" height="400"></canvas>
       <div class="overlay" id="overlay">
         <h2 id="ov-title">Ready?</h2>
-        <p id="ov-text">Use the arrow keys or WASD to steer your caterpillar. Eat the green dots and don't bite yourself.</p>
+        <p id="ov-text">Use the arrow keys or WASD to steer. Eat the pink dots and don't bite yourself.</p>
         <button id="start-btn">Play</button>
       </div>
     </div>
@@ -280,41 +280,18 @@
 
     // food
     const fx = food.x * CELL, fy = food.y * CELL;
-    ctx.fillStyle = "#4ade80";
-    ctx.shadowColor = "#4ade80";
+    ctx.fillStyle = "#f472b6";
+    ctx.shadowColor = "#f472b6";
     ctx.shadowBlur = 12;
     roundRect(fx + CELL * 0.2, fy + CELL * 0.2, CELL * 0.6, CELL * 0.6, 5);
     ctx.shadowBlur = 0;
 
-    // caterpillar
-    const last = snake.length - 1;
+    // snake
     snake.forEach((s, i) => {
-      if (i === last && snake.length > 1) {
-        drawTail(s, snake[i - 1]);
-      } else {
-        ctx.fillStyle = i === 0 ? "#fde047" : "#facc15";
-        const pad = i === 0 ? 1.5 : 2.5;
-        roundRect(s.x * CELL + pad, s.y * CELL + pad, CELL - pad * 2, CELL - pad * 2, 6);
-      }
+      ctx.fillStyle = i === 0 ? "#86efac" : "#4ade80";
+      const pad = i === 0 ? 1.5 : 2.5;
+      roundRect(s.x * CELL + pad, s.y * CELL + pad, CELL - pad * 2, CELL - pad * 2, 5);
     });
-  }
-
-  // Triangle tail pointing away from the body
-  function drawTail(tail, prev) {
-    const cx = tail.x * CELL + CELL / 2;
-    const cy = tail.y * CELL + CELL / 2;
-    // outward direction = away from the segment before the tail
-    const ox = tail.x - prev.x;
-    const oy = tail.y - prev.y;
-    const h = CELL / 2 - 1;   // half-size
-    ctx.fillStyle = "#facc15";
-    ctx.beginPath();
-    // tip pokes outward, base spans the cell perpendicular to travel
-    ctx.moveTo(cx + ox * h, cy + oy * h);
-    ctx.lineTo(cx - ox * h + oy * h, cy - oy * h + ox * h);
-    ctx.lineTo(cx - ox * h - oy * h, cy - oy * h - ox * h);
-    ctx.closePath();
-    ctx.fill();
   }
 
   // ---- Controls ----
